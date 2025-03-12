@@ -15,25 +15,27 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-func PrintInfo(format string, args ...interface{}) {
+func PrintInfo(format string, args ...any) {
 	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
 }
 
-// global .gitconfigfile path
+// global .gitconfigfile path.
 func globalConfigFile() string {
 	home, err := os.UserHomeDir()
 	CheckErr(err)
+
 	return filepath.Join(home, ".gitconfig")
 }
 
-// load config file
+// load config file.
 func loadGlobalConfigFile() *ini.File {
 	cfg, err := ini.Load(globalConfigFile())
 	CheckErr(err)
+
 	return cfg
 }
 
-// get users section keys
+// get users section keys.
 func getGlobalUsersKeys() []string {
 	file, err := os.Open(globalConfigFile())
 	CheckErr(err)
@@ -41,10 +43,12 @@ func getGlobalUsersKeys() []string {
 
 	re := regexp.MustCompile(`\[users\s+"(.*?)"\]`)
 	scanner := bufio.NewScanner(file)
+
 	var usersKeys []string
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		match := re.FindStringSubmatch(line)
 		if len(match) > 1 {
 			usersKeys = append(usersKeys, match[1])
@@ -57,9 +61,10 @@ func getGlobalUsersKeys() []string {
 	return usersKeys
 }
 
-// prepare users section
+// prepare users section.
 func prepareUsers(usersKeys []string) []models.User {
 	var users []models.User
+
 	for _, v := range usersKeys {
 		u := "users \"" + v + "\""
 		section := loadGlobalConfigFile().Section(u)
@@ -67,6 +72,7 @@ func prepareUsers(usersKeys []string) []models.User {
 		CheckErr(err)
 		email, err := section.GetKey("email")
 		CheckErr(err)
+
 		user := models.User{
 			Name:  name.String(),
 			Email: email.String(),
@@ -77,20 +83,21 @@ func prepareUsers(usersKeys []string) []models.User {
 	return append(users, models.GetCurrentUsr())
 }
 
-// render users
+// render users.
 func RenderUsers() {
-
 	var users []string
+
 	var currUser string
+
 	for _, usr := range prepareUsers(getGlobalUsersKeys()) {
 		if usr.Name == models.GetCurrentUsr().Name && usr.Email == models.GetCurrentUsr().Email {
-
 			currUser = color.YellowString("%s <%s> *", usr.Name, usr.Email)
 			users = append(users, currUser)
 		} else {
 			users = append(users, fmt.Sprintf("%s <%s>", usr.Name, usr.Email))
 		}
 	}
+
 	slices.Reverse(users)
 	prompt := promptui.Select{
 		Label: "Select User",
@@ -98,9 +105,9 @@ func RenderUsers() {
 	}
 
 	_, result, err := prompt.Run()
-
 	if err != nil {
 		fmt.Printf("Prompt failed %v\n", err)
+
 		return
 	}
 
@@ -114,11 +121,12 @@ func RenderUsers() {
 	}
 }
 
-// handle error
+// handle error.
 func CheckErr(err error) {
 	if err == nil {
 		return
 	}
+
 	fmt.Printf("\x1b[31;1m%s\x1b[0m\n", fmt.Sprintf("error: %s", err))
 	os.Exit(1)
 }
