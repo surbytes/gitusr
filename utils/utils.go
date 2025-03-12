@@ -1,5 +1,7 @@
 package utils
 
+// TODO: Add package documentation comment explaining the purpose of this package
+
 import (
 	"bufio"
 	"fmt"
@@ -15,6 +17,9 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+// PrintInfo prints information messages with blue color
+// TODO: Use color package consistently instead of ANSI codes directly
+// TODO: Add exported function documentation
 func PrintInfo(format string, args ...interface{}) {
 	fmt.Printf("\x1b[34;1m%s\x1b[0m\n", fmt.Sprintf(format, args...))
 }
@@ -78,6 +83,8 @@ func prepareUsers(usersKeys []string) []models.User {
 }
 
 // render users
+// TODO: Add exported function documentation
+// TODO: Return errors instead of handling them internally
 func RenderUsers() {
 
 	var users []string
@@ -115,6 +122,9 @@ func RenderUsers() {
 }
 
 // handle error
+// TODO: Use color package consistently instead of ANSI codes directly
+// TODO: Consider returning errors instead of immediate exit for better error handling
+// TODO: Add exported function documentation
 func CheckErr(err error) {
 	if err == nil {
 		return
