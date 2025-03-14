@@ -79,14 +79,11 @@ func prepareUsers(usersKeys []string) []models.User {
 
 // render users
 func RenderUsers() {
-
 	var users []string
-	var currUser string
+	currentUser := models.GetCurrentUsr()
 	for _, usr := range prepareUsers(getGlobalUsersKeys()) {
-		if usr.Name == models.GetCurrentUsr().Name && usr.Email == models.GetCurrentUsr().Email {
-
-			currUser = color.YellowString("%s <%s> *", usr.Name, usr.Email)
-			users = append(users, currUser)
+		if usr.Name == currentUser.Name && usr.Email == currentUser.Email {
+			users = append(users, color.YellowString("%s <%s> *", usr.Name, usr.Email))
 		} else {
 			users = append(users, fmt.Sprintf("%s <%s>", usr.Name, usr.Email))
 		}
@@ -98,19 +95,37 @@ func RenderUsers() {
 	}
 
 	_, result, err := prompt.Run()
-
 	if err != nil {
 		fmt.Printf("Prompt failed %v\n", err)
 		return
 	}
 
 	if len(result) > 0 {
-		rs := strings.Split(result, " ")
-		if rs[0] == strings.Split(currUser, " ")[0] && rs[1] == ("<"+models.GetCurrentUsr().Email+">") {
+		selectedUser := sanitizeResult(result)
+		if currentUser.Name == selectedUser.Name && currentUser.Email == selectedUser.Email {
 			color.Red("Selected user is already the active Git user. No changes made")
 		} else {
-			models.SetUsr(rs[0])
+			models.SetUsr(currentUser, selectedUser)
 		}
+	}
+}
+
+// Sanitize result with regex
+func sanitizeResult(result string) models.User {
+	ansiReg := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	reg := regexp.MustCompile(`\<(.*?)\>`)
+	email := reg.FindStringSubmatch(result)[1]
+
+	name := reg.ReplaceAllString(result, "")
+	if ansiReg.MatchString(name) {
+		name = strings.ReplaceAll(name, " *", "")
+		name = ansiReg.ReplaceAllString(name, "")
+	}
+	name = strings.TrimSpace(name)
+
+	return models.User{
+		Email: email,
+		Name:  name,
 	}
 }
 

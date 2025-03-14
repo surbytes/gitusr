@@ -39,7 +39,6 @@ func GetUsr(name string) (User, error) {
 	}
 
 	email, err := exec.Command("git", "config", "--global", sectionEmail).Output()
-
 	if err != nil {
 		return User{}, err
 	}
@@ -50,33 +49,22 @@ func GetUsr(name string) (User, error) {
 		Name:  nname,
 		Email: nemail,
 	}, nil
-
 }
 
-func SetUsr(name string) {
+func SetUsr(currentUser, targetUser User) {
+	sectionName := "users." + targetUser.Name + ".name"
+	sectionEmail := "users." + targetUser.Name + ".email"
 
-	sectionName := "users." + name + ".name"
-	sectionEmail := "users." + name + ".email"
-
-	targetUsr, err := GetUsr(name)
+	_, err := AddUsr(currentUser.Name, currentUser.Email)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	currentUsr := GetCurrentUsr()
-
-	// ADD the current user into users.
-
-	_, err = AddUsr(currentUsr.Name, currentUsr.Email)
-	if err != nil {
+	if err := exec.Command("git", "config", "--global", "user.name", targetUser.Name).Run(); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := exec.Command("git", "config", "--global", "user.name", targetUsr.Name).Run(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := exec.Command("git", "config", "--global", "user.email", targetUsr.Email).Run(); err != nil {
+	if err := exec.Command("git", "config", "--global", "user.email", targetUser.Email).Run(); err != nil {
 		log.Fatal(err)
 	}
 
@@ -91,9 +79,6 @@ func SetUsr(name string) {
 
 // get the current user on git config file
 func GetCurrentUsr() User {
-
-	//var email strings.Builder
-	//var name strings.Builder
 	name, err := exec.Command("git", "config", "--global", "user.name").Output()
 	if err != nil {
 		log.Fatal(err)
@@ -110,18 +95,5 @@ func GetCurrentUsr() User {
 	return User{
 		Name:  nname,
 		Email: nemail,
-	}
-
-}
-
-// delete user from git config file
-func (usr *User) DelUsr(name string, email string) {
-
-	if err := exec.Command("git", "config", "--global", "--unset-all", "users.email", usr.Email).Run(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := exec.Command("git", "config", "--global", "--unset-all", "users.name", usr.Name).Run(); err != nil {
-		log.Fatal(err)
 	}
 }
