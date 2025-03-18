@@ -78,7 +78,16 @@ func prepareUsers(usersKeys []string) []models.User {
 }
 
 // render users
-func RenderUsers() {
+func RenderUsers(username ...string) {
+
+	if len(username) > 0 && username[0] != "" {
+		err := SwitchUserByName(username[0])
+		if err != nil {
+			fmt.Printf("Error: %s\n", err)
+		}
+		return
+	}
+
 	var users []string
 	currentUser := models.GetCurrentUsr()
 	for _, usr := range prepareUsers(getGlobalUsersKeys()) {
@@ -92,7 +101,7 @@ func RenderUsers() {
 	prompt := promptui.Select{
 		Label: "Select User",
 		Items: users,
-	}
+	} 
 
 	_, result, err := prompt.Run()
 	if err != nil {
@@ -127,6 +136,52 @@ func sanitizeResult(result string) models.User {
 		Email: email,
 		Name:  name,
 	}
+}
+// SwitchUserByName provides a quick way to switch Git users by name
+// without having to go through the interactive selection process
+func SwitchUserByName(username string) error {
+	usersKeys := getGlobalUsersKeys()
+	
+	var foundUser models.User
+	var found bool
+	
+	for _, key := range usersKeys {
+		if strings.EqualFold(key, username) {
+			u := "users \"" + key + "\""
+			section := loadGlobalConfigFile().Section(u)
+			
+			name, err := section.GetKey("name")
+			if err != nil {
+				return fmt.Errorf("user found but missing name property")
+			}
+			
+			email, err := section.GetKey("email")
+			if err != nil {
+				return fmt.Errorf("user found but missing email property")
+			}
+			
+			foundUser = models.User{
+				Name:  name.String(),
+				Email: email.String(),
+			}
+			found = true
+			break
+		}
+	}
+	
+	if !found {
+		return fmt.Errorf("user '%s' not found", username)
+	}
+
+	currentUser := models.GetCurrentUsr()
+	if currentUser.Name == foundUser.Name && currentUser.Email == foundUser.Email {
+		color.Yellow("User '%s' is already the active Git user", username)
+		return nil
+	}
+	
+	models.SetUsr(currentUser, foundUser)
+	PrintInfo("Switched to Git user: %s <%s>", foundUser.Name, foundUser.Email)
+	return nil
 }
 
 // handle error
